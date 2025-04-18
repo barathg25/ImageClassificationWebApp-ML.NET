@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace WebApp.Predict.Pages
+namespace MvcMovie.Pages
 {
     public class IndexModel : PageModel
     {
