@@ -20,30 +20,25 @@ namespace ImageClassification.WebApp
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        // Called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<CookiePolicyOptions>(options =>
             {
-                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+                // Determine whether user consent for non-essential cookies is needed.
                 options.CheckConsentNeeded = context => true;
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            // Use AddControllers() for API controller support
+            // Add controllers and views
             services.AddControllersWithViews();
 
-            /////////////////////////////////////////////////////////////////////////////
-            // Register the PredictionEnginePool as a service in the IoC container for DI.
-            //
+            // Register ML.NET prediction engine pool
             services.AddPredictionEnginePool<InMemoryImageData, ImagePrediction>()
                     .FromFile(Configuration["MLModel:MLModelFilePath"]);
-
-            // (Optional) Get the pool to initialize it and warm it up.
-            // WarmUpPredictionEnginePool(services);
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        // Called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -57,37 +52,34 @@ namespace ImageClassification.WebApp
             }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
+
+            app.UseDefaultFiles();      // ✅ Serve index.html by default from wwwroot
+            app.UseStaticFiles();       // ✅ Allow serving of static files like HTML, CSS, JS
             app.UseCookiePolicy();
 
-            // Use Endpoint routing with MapControllers().
             app.UseRouting();
 
             app.UseEndpoints(endpoints =>
             {
-                // Add support for controllers
-                endpoints.MapControllers();
+                endpoints.MapControllers();  // ✅ Map API controllers (e.g., /Predict)
             });
         }
 
+        // (Optional) Utility to warm up prediction engine
         public static void WarmUpPredictionEnginePool(IServiceCollection services)
         {
-            // #1 - Simply get a Prediction Engine
-            var predictionEnginePool = services.BuildServiceProvider().GetRequiredService<PredictionEnginePool<InMemoryImageData, ImagePrediction>>();
+            var predictionEnginePool = services.BuildServiceProvider()
+                .GetRequiredService<PredictionEnginePool<InMemoryImageData, ImagePrediction>>();
             var predictionEngine = predictionEnginePool.GetPredictionEngine();
             predictionEnginePool.ReturnPredictionEngine(predictionEngine);
-
-            // #2 - Predict (optional)
-            // Uncomment and implement image prediction as needed.
         }
 
+        // (Optional) Utility to get full path to a model file
         public static string GetAbsolutePath(string relativePath)
         {
             FileInfo _dataRoot = new FileInfo(typeof(Program).Assembly.Location);
             string assemblyFolderPath = _dataRoot.Directory.FullName;
-
-            string fullPath = Path.Combine(assemblyFolderPath, relativePath);
-            return fullPath;
+            return Path.Combine(assemblyFolderPath, relativePath);
         }
     }
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Image Classification</title>
+</head>
+<body>
+  <h2>Upload Image for Classification</h2>
+  <input type="file" id="imageInput" accept="image/*"><br><br>
+  <button onclick="classifyImage()">Classify</button>
+  <br><br>
+  <img id="preview" style="max-width:300px; display:none;" />
+  <h3 id="result"></h3>
+
+  <script>
+    let selectedFile;
+
+    document.getElementById('imageInput').addEventListener('change', function(event) {
+      selectedFile = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.getElementById('preview');
+        img.src = e.target.result;
+        img.style.display = 'block';
+      };
+      reader.readAsDataURL(selectedFile);
+    });
+
+    async function classifyImage() {
+      if (!selectedFile) {
+        alert("Please select an image.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("imageFile", selectedFile);
+
+      const response = await fetch("/Predict", {
+        method: "POST",
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        document.getElementById("result").innerText = "Prediction: " + result.predictedLabel;
+      } else {
+        document.getElementById("result").innerText = "Prediction failed.";
+      }
+    }
+  </script>
+</body>
+</html>
