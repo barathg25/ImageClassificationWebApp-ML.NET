@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading.Tasks;
 using static Microsoft.ML.DataOperationsCatalog;
 using static Microsoft.ML.Transforms.ValueToKeyMappingEstimator;
 
@@ -278,17 +279,15 @@ namespace ImageClassification.Train
         {
             // get a set of images to teach the network about the new classes
 
-            //SINGLE SMALL FLOWERS IMAGESET (200 files)
+            // SMALL FLOWERS IMAGESET (200 files)
             const string fileName = "flower_photos_small_set.zip";
             string url = $"https://mlnetfilestorage.file.core.windows.net/imagesets/flower_images/flower_photos_small_set.zip?st=2019-08-07T21%3A27%3A44Z&se=2030-08-08T21%3A27%3A00Z&sp=rl&sv=2018-03-28&sr=f&sig=SZ0UBX47pXD0F1rmrOM%2BfcwbPVob8hlgFtIlN89micM%3D";
-            Web.Download(url, imagesDownloadFolder, fileName);
-            Compress.UnZip(Path.Join(imagesDownloadFolder, fileName), imagesDownloadFolder);
 
-            //SINGLE FULL FLOWERS IMAGESET (3,600 files)
-            //string fileName = "flower_photos.tgz";
-            //string url = $"http://download.tensorflow.org/example_images/{fileName}";
-            //Web.Download(url, imagesDownloadFolder, fileName);
-            //Compress.ExtractTGZ(Path.Join(imagesDownloadFolder, fileName), imagesDownloadFolder);
+            // Call async download method and wait for it synchronously
+            Web.DownloadAsync(url, imagesDownloadFolder, fileName).GetAwaiter().GetResult();
+
+            // Unzip the downloaded file
+            Compress.UnZip(Path.Join(imagesDownloadFolder, fileName), imagesDownloadFolder);
 
             return Path.GetFileNameWithoutExtension(fileName);
         }

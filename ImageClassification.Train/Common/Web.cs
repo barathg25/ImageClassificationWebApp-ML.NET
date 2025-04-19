@@ -1,18 +1,17 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Threading;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Common
 {
     public class Web
     {
-        public static bool Download(string url, string destDir, string destFileName)
+        public static async Task<bool> DownloadAsync(string url, string destDir, string destFileName = null)
         {
-            if (destFileName == null)
-                destFileName = url.Split(Path.DirectorySeparatorChar).Last();
+            if (string.IsNullOrWhiteSpace(destFileName))
+                destFileName = url.Split('/').Last();
 
             Directory.CreateDirectory(destDir);
 
@@ -24,18 +23,26 @@ namespace Common
                 return false;
             }
 
-            WebClient wc = new WebClient();
             Console.WriteLine($"Downloading {relativeFilePath}");
-            Task download = Task.Run(() => wc.DownloadFile(url, relativeFilePath));
-            while (!download.IsCompleted)
-            {
-                Thread.Sleep(1000);
-                Console.Write(".");
-            }
-            Console.WriteLine("");
-            Console.WriteLine($"Downloaded {relativeFilePath}");
 
-            return true;
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                using (HttpResponseMessage response = await client.GetAsync(url))
+                using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                using (Stream streamToWriteTo = File.Open(relativeFilePath, FileMode.Create))
+                {
+                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
+                }
+
+                Console.WriteLine($"\nDownloaded {relativeFilePath}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Download failed: {ex.Message}");
+                return false;
+            }
         }
     }
 }

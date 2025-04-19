@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.ML;
 using System.IO;
 
@@ -20,11 +21,8 @@ namespace ImageClassification.WebApp
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        [System.Obsolete]
         public void ConfigureServices(IServiceCollection services)
         {
-            //services.AddMvc(options => options.EnableEndpointRouting = false);
-
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -32,7 +30,8 @@ namespace ImageClassification.WebApp
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            // Use AddControllers() for API controller support
+            services.AddControllersWithViews();
 
             /////////////////////////////////////////////////////////////////////////////
             // Register the PredictionEnginePool as a service in the IoC container for DI.
@@ -40,13 +39,12 @@ namespace ImageClassification.WebApp
             services.AddPredictionEnginePool<InMemoryImageData, ImagePrediction>()
                     .FromFile(Configuration["MLModel:MLModelFilePath"]);
 
-            // (Optional) Get the pool to initialize it and warm it up.       
-            //WarmUpPredictionEnginePool(services);
+            // (Optional) Get the pool to initialize it and warm it up.
+            // WarmUpPredictionEnginePool(services);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        [System.Obsolete]
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -55,7 +53,6 @@ namespace ImageClassification.WebApp
             else
             {
                 app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -63,42 +60,25 @@ namespace ImageClassification.WebApp
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
-            app.UseMvc();
+            // Use Endpoint routing with MapControllers().
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                // Add support for controllers
+                endpoints.MapControllers();
+            });
         }
 
         public static void WarmUpPredictionEnginePool(IServiceCollection services)
         {
-            //#1 - Simply get a Prediction Engine
-            PredictionEnginePool<InMemoryImageData, ImagePrediction> predictionEnginePool = services.BuildServiceProvider().GetRequiredService<PredictionEnginePool<InMemoryImageData, ImagePrediction>>();
-            Microsoft.ML.PredictionEngine<InMemoryImageData, ImagePrediction> predictionEngine = predictionEnginePool.GetPredictionEngine();
+            // #1 - Simply get a Prediction Engine
+            var predictionEnginePool = services.BuildServiceProvider().GetRequiredService<PredictionEnginePool<InMemoryImageData, ImagePrediction>>();
+            var predictionEngine = predictionEnginePool.GetPredictionEngine();
             predictionEnginePool.ReturnPredictionEngine(predictionEngine);
 
-            // #2 - Predict
-            // Get a sample image
-            //
-            //Image img = Image.FromFile(@"TestImages/BlackRose.png");
-            //byte[] imageData;
-            //IFormFile imageFile;
-            //using (MemoryStream ms = new MemoryStream())
-            //{
-            //    img.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-            //    //To byte[] (#1)
-            //    imageData = ms.ToArray();
-
-            //    //To FormFile (#2)
-            //    imageFile = new FormFile((Stream)ms, 0, ms.Length, "BlackRose", "BlackRose.png");
-            //}
-
-            //var imageInputData = new InMemoryImageData(image: imageData, label: null, imageFileName: null);
-
-            //// Measure execution time.
-            //var watch = System.Diagnostics.Stopwatch.StartNew();
-
-            //var prediction = predictionEnginePool.Predict(imageInputData);
-
-            //// Stop measuring time.
-            //watch.Stop();
-            //var elapsedMs = watch.ElapsedMilliseconds;
+            // #2 - Predict (optional)
+            // Uncomment and implement image prediction as needed.
         }
 
         public static string GetAbsolutePath(string relativePath)

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace MvcMovie.Pages
+namespace WebApp.Predict.Pages
 {
     public class PrivacyModel : PageModel
     {
